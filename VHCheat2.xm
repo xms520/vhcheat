@@ -185,9 +185,9 @@ static int       g_snapSeq = 0;   // 0=A 1=B 交替
 #define MAX_SNAP_ITEMS (2000000)
 
 static BOOL VGIsWritableRegion(vm_region_basic_info_data_64_t *info) {
+    // 只要 R+W 且不是超大共享段即可（share_mode 字段在 64 位 info 里是 shared/pad 布局差异，不依赖它）
     return (info->protection & VM_PROT_WRITE) &&
-           (info->protection & VM_PROT_READ) &&
-          !(info->share_mode == SM_TRUESHARED);  // 跳过共享库段
+           (info->protection & VM_PROT_READ);
 }
 
 // 采集快照：所有 writable 区域内 [1, 9999999] 的 float32
