@@ -32,6 +32,9 @@ jobs:
             -o VHCheat.dylib \
             VHCheat.m
           
+          # Install ldid for signing
+          brew install ldid
+          
           # Sign
           ldid -S VHCheat.dylib
           
