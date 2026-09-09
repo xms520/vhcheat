@@ -14,6 +14,9 @@ jobs:
           brew install ldid make xz
           git clone --depth=1 https://github.com/theos/theos.git $HOME/theos
           echo "THEOS=$HOME/theos" >> $GITHUB_ENV
+          # Initialize Theos (creates vendor/include and vendor/lib)
+          yes | $HOME/theos/bin/update-theos 2>&1 || true
+          ls $HOME/theos/vendor/include/ 2>/dev/null | head -5 || echo "vendor/include missing"
           
       - name: Setup iOS SDK (from Xcode)
         run: |
