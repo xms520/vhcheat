@@ -16,8 +16,7 @@ jobs:
           echo "SDK: $SDK"
           echo "CC: $CC"
           
-          # Rename .xm to .m (no Logos used, plain ObjC)
-          cp VHCheat.xm VHCheat.m
+          cp VHCheat2.xm VHCheat2.m
           
           $CC -arch arm64 \
             -isysroot "$SDK" \
@@ -28,21 +27,18 @@ jobs:
             -framework CoreGraphics \
             -framework QuartzCore \
             -dynamiclib \
-            -install_name @executable_path/VHCheat.dylib \
-            -o VHCheat.dylib \
-            VHCheat.m
+            -install_name @executable_path/VHCheat2.dylib \
+            -o VHCheat2.dylib \
+            VHCheat2.m
           
-          # Install ldid for signing
           brew install ldid
+          ldid -S VHCheat2.dylib
           
-          # Sign
-          ldid -S VHCheat.dylib
-          
-          file VHCheat.dylib
-          ls -la VHCheat.dylib
+          file VHCheat2.dylib
+          ls -la VHCheat2.dylib
           
       - name: Upload
         uses: actions/upload-artifact@v4
         with:
-          name: VHCheat.dylib
-          path: VHCheat.dylib
+          name: VHCheat2.dylib
+          path: VHCheat2.dylib
