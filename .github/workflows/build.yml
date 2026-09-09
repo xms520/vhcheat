@@ -9,52 +9,37 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       
-      - name: Install Theos and SDK
+      - name: Build with clang (direct)
         run: |
-          brew install ldid make xz
-          
-          # Install Theos
-          git clone --depth=1 https://github.com/theos/theos.git $HOME/theos
-          
-          # Manually create vendor directories with symlinks to Xcode SDK
-          mkdir -p $HOME/theos/vendor/include
-          mkdir -p $HOME/theos/vendor/lib
-          
-          # Get SDK path from Xcode
+          # Find iOS SDK
           SDK=$(xcrun --sdk iphoneos --show-sdk-path)
           echo "SDK: $SDK"
           
-          # Copy headers from Xcode SDK
-          cp -R $SDK/usr/include/* $HOME/theos/vendor/include/ 2>/dev/null || true
+          # Find clang
+          CC=$(xcrun --sdk iphoneos --find clang)
+          echo "CC: $CC"
           
-          # Copy frameworks headers
-          for fw in Foundation UIKit CoreFoundation QuartzCore CoreGraphics AVFoundation; do
-            if [ -d "$SDK/System/Library/Frameworks/$fw.framework/Headers" ]; then
-              cp -R "$SDK/System/Library/Frameworks/$fw.framework/Headers/"* "$HOME/theos/vendor/include/" 2>/dev/null || true
-            fi
-          done
+          # Compile
+          $CC -arch arm64 \
+            -isysroot "$SDK" \
+            -miphoneos-version-min=14.0 \
+            -fobjc-arc \
+            -framework Foundation \
+            -framework UIKit \
+            -dynamiclib \
+            -install_name @executable_path/VHCheat.dylib \
+            -o VHCheat.dylib \
+            VHCheat.xm
           
-          # Create dummy lib files (headers-only build works for tweak)
-          touch $HOME/theos/vendor/lib/libsubstrate.dylib
-          touch $HOME/theos/vendor/lib/libhooker.dylib
+          # Sign with ldid (ad-hoc)
+          ldid -S VHCheat.dylib
           
-          # Setup SDK for Theos
-          mkdir -p $HOME/theos/sdk
-          cd $(dirname "$SDK")
-          tar -cf - $(basename "$SDK") | xz -9 -c > $HOME/theos/sdk/iPhoneOS.sdk.tar.xz
-          
-          ls $HOME/theos/vendor/include/ | head -10
-          ls $HOME/theos/sdk/
-          
-      - name: Build
-        run: |
-          export THEOS=$HOME/theos
-          export PATH=$THEOS/bin:$PATH
-          make clean
-          make FINALPACKAGE=1
+          # Verify
+          file VHCheat.dylib
+          ls -la VHCheat.dylib
           
       - name: Upload dylib
         uses: actions/upload-artifact@v4
         with:
           name: VHCheat.dylib
-          path: .theos/obj/debug/arm64/VHCheat.dylib
+          path: VHCheat.dylib
