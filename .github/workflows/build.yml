@@ -9,36 +9,36 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       
-      - name: Build with clang (direct)
+      - name: Build with clang
         run: |
-          # Find iOS SDK
           SDK=$(xcrun --sdk iphoneos --show-sdk-path)
-          echo "SDK: $SDK"
-          
-          # Find clang
           CC=$(xcrun --sdk iphoneos --find clang)
+          echo "SDK: $SDK"
           echo "CC: $CC"
           
-          # Compile
+          # Rename .xm to .m (no Logos used, plain ObjC)
+          cp VHCheat.xm VHCheat.m
+          
           $CC -arch arm64 \
             -isysroot "$SDK" \
             -miphoneos-version-min=14.0 \
             -fobjc-arc \
             -framework Foundation \
             -framework UIKit \
+            -framework CoreGraphics \
+            -framework QuartzCore \
             -dynamiclib \
             -install_name @executable_path/VHCheat.dylib \
             -o VHCheat.dylib \
-            VHCheat.xm
+            VHCheat.m
           
-          # Sign with ldid (ad-hoc)
+          # Sign
           ldid -S VHCheat.dylib
           
-          # Verify
           file VHCheat.dylib
           ls -la VHCheat.dylib
           
-      - name: Upload dylib
+      - name: Upload
         uses: actions/upload-artifact@v4
         with:
           name: VHCheat.dylib
