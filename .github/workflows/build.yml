@@ -9,19 +9,32 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       
-      - name: Install Theos
+      - name: Setup Theos
         run: |
           brew install ldid make xz
           git clone --depth=1 https://github.com/theos/theos.git $HOME/theos
           echo "THEOS=$HOME/theos" >> $GITHUB_ENV
           
-      - name: Setup iOS SDK
+      - name: Setup iOS SDK (from Xcode)
         run: |
-          SDK_URL="https://github.com/xybp888/iOS-SDK/releases/download/16.2/iPhoneOS16.2.sdk.tar.xz"
-          mkdir -p $HOME/theos/sdk
-          curl -L $SDK_URL -o /tmp/sdk.tar.xz
-          tar -xf /tmp/sdk.tar.xz -C $HOME/theos/sdk/
-          ls $HOME/theos/sdk/
+          # GitHub Actions macOS runner has Xcode with iOS SDK
+          SDK_PATH=$(xcode-select -p)/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS.sdk
+          if [ -d "$SDK_PATH" ]; then
+            mkdir -p $HOME/theos/sdk
+            # Create a tar.xz from the Xcode SDK
+            cd $(dirname "$SDK_PATH")
+            tar -cf - $(basename "$SDK_PATH") | xz -9 -c > /tmp/iPhoneOS.sdk.tar.xz
+            tar -xf /tmp/iPhoneOS.sdk.tar.xz -C $HOME/theos/sdk/
+            ls $HOME/theos/sdk/iPhoneOS.sdk/System/Library/Frameworks/ | head -5
+          else
+            echo "SDK not found at $SDK_PATH, trying xcrun..."
+            SDK_PATH2=$(xcrun --sdk iphoneos --show-sdk-path)
+            echo "SDK path: $SDK_PATH2"
+            mkdir -p $HOME/theos/sdk
+            cd $(dirname "$SDK_PATH2")
+            tar -cf - $(basename "$SDK_PATH2") | xz -9 -c > /tmp/iPhoneOS.sdk.tar.xz
+            tar -xf /tmp/iPhoneOS.sdk.tar.xz -C $HOME/theos/sdk/
+          fi
           
       - name: Build
         run: |
