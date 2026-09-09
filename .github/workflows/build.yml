@@ -9,35 +9,42 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       
-      - name: Setup Theos
+      - name: Install Theos and SDK
         run: |
           brew install ldid make xz
-          git clone --depth=1 https://github.com/theos/theos.git $HOME/theos
-          echo "THEOS=$HOME/theos" >> $GITHUB_ENV
-          # Initialize Theos (creates vendor/include and vendor/lib)
-          yes | $HOME/theos/bin/update-theos 2>&1 || true
-          ls $HOME/theos/vendor/include/ 2>/dev/null | head -5 || echo "vendor/include missing"
           
-      - name: Setup iOS SDK (from Xcode)
-        run: |
-          # GitHub Actions macOS runner has Xcode with iOS SDK
-          SDK_PATH=$(xcode-select -p)/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS.sdk
-          if [ -d "$SDK_PATH" ]; then
-            mkdir -p $HOME/theos/sdk
-            # Create a tar.xz from the Xcode SDK
-            cd $(dirname "$SDK_PATH")
-            tar -cf - $(basename "$SDK_PATH") | xz -9 -c > /tmp/iPhoneOS.sdk.tar.xz
-            tar -xf /tmp/iPhoneOS.sdk.tar.xz -C $HOME/theos/sdk/
-            ls $HOME/theos/sdk/iPhoneOS.sdk/System/Library/Frameworks/ | head -5
-          else
-            echo "SDK not found at $SDK_PATH, trying xcrun..."
-            SDK_PATH2=$(xcrun --sdk iphoneos --show-sdk-path)
-            echo "SDK path: $SDK_PATH2"
-            mkdir -p $HOME/theos/sdk
-            cd $(dirname "$SDK_PATH2")
-            tar -cf - $(basename "$SDK_PATH2") | xz -9 -c > /tmp/iPhoneOS.sdk.tar.xz
-            tar -xf /tmp/iPhoneOS.sdk.tar.xz -C $HOME/theos/sdk/
-          fi
+          # Install Theos
+          git clone --depth=1 https://github.com/theos/theos.git $HOME/theos
+          
+          # Manually create vendor directories with symlinks to Xcode SDK
+          mkdir -p $HOME/theos/vendor/include
+          mkdir -p $HOME/theos/vendor/lib
+          
+          # Get SDK path from Xcode
+          SDK=$(xcrun --sdk iphoneos --show-sdk-path)
+          echo "SDK: $SDK"
+          
+          # Copy headers from Xcode SDK
+          cp -R $SDK/usr/include/* $HOME/theos/vendor/include/ 2>/dev/null || true
+          
+          # Copy frameworks headers
+          for fw in Foundation UIKit CoreFoundation QuartzCore CoreGraphics AVFoundation; do
+            if [ -d "$SDK/System/Library/Frameworks/$fw.framework/Headers" ]; then
+              cp -R "$SDK/System/Library/Frameworks/$fw.framework/Headers/"* "$HOME/theos/vendor/include/" 2>/dev/null || true
+            fi
+          done
+          
+          # Create dummy lib files (headers-only build works for tweak)
+          touch $HOME/theos/vendor/lib/libsubstrate.dylib
+          touch $HOME/theos/vendor/lib/libhooker.dylib
+          
+          # Setup SDK for Theos
+          mkdir -p $HOME/theos/sdk
+          cd $(dirname "$SDK")
+          tar -cf - $(basename "$SDK") | xz -9 -c > $HOME/theos/sdk/iPhoneOS.sdk.tar.xz
+          
+          ls $HOME/theos/vendor/include/ | head -10
+          ls $HOME/theos/sdk/
           
       - name: Build
         run: |
