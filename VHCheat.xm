@@ -13,7 +13,7 @@
 #import <UIKit/UIKit.h>
 #import <objc/runtime.h>
 #import <mach/mach.h>
-#import <mach/mach_vm.h>
+#import <mach/vm_map.h>
 #import <mach-o/dyld.h>
 #import <dlfcn.h>
 #include <math.h>
@@ -132,33 +132,32 @@ typedef struct {
 static MemScanner g_hpScanner = {0};
 static BOOL g_scanning = NO;
 
-// 扫描可读内存段找浮点值
+// 扫描可读内存段找浮点值（使用兼容 API）
 static void VGScanMemory(void) {
     task_t task = mach_task_self();
-    mach_vm_address_t address = 0;
-    mach_vm_size_t size = 0;
+    vm_address_t address = 0x100000000;  // 从合理地址开始
+    vm_size_t size = 0;
     vm_region_basic_info_data_64_t info;
     mach_msg_type_number_t count = VM_REGION_BASIC_INFO_COUNT_64;
     mach_port_t objectName = MACH_PORT_NULL;
 
     int found = 0;
-    while (mach_vm_region(task, &address, &size, VM_REGION_BASIC_INFO,
-                          (vm_region_info_t)&info, &count, &objectName) == KERN_SUCCESS) {
-        // 只读 + 可读段（代码段/数据段）
+    while (vm_region_64(task, &address, &size, VM_REGION_BASIC_INFO,
+                        (vm_region_info_t)&info, &count, &objectName) == KERN_SUCCESS) {
         if ((info.protection & VM_PROT_READ) && size > 0 && size < 0x100000) {
             void *buf = malloc((size_t)size);
-            mach_vm_size_t outSize = 0;
-            kern_return_t kr = mach_vm_read_overwrite(task, address, size,
-                                                       (mach_vm_address_t)buf, &outSize);
+            vm_size_t outSize = 0;
+            kern_return_t kr = vm_read_overwrite(task, address, size,
+                                                  (vm_address_t)buf, &outSize);
             if (kr == KERN_SUCCESS && outSize >= sizeof(float)) {
                 float *p = (float*)buf;
-                for (mach_vm_size_t i = 0; i < outSize/sizeof(float); i++) {
+                for (vm_size_t i = 0; i < outSize/sizeof(float); i++) {
                     float v = p[i];
                     // 寻找合理范围的浮点数（HP 通常在 0~99999）
                     if (v > 0.0f && v < 99999.0f && v == v) {  // 排除 NaN/Inf
                         found++;
                         if (found < 50) {
-                            VGLog("[scan] addr=0x%llx val=%.2f", address + i*sizeof(float), v);
+                            VGLog("[scan] addr=0x%lx val=%.2f", (unsigned long)(address + i*sizeof(float)), v);
                         }
                     }
                 }
@@ -189,8 +188,10 @@ static UIWindow *fg_keyWindow(void) {
             if (ws.windows.count) return ws.windows.firstObject;
         }
     }
-    for (UIWindow *w in UIApplication.sharedApplication.windows) if (w.isKeyWindow) return w;
-    return UIApplication.sharedApplication.keyWindow;
+    // 兜底：找第一个 window
+    if (UIApplication.sharedApplication.windows.count) 
+        return UIApplication.sharedApplication.windows.firstObject;
+    return nil;
 }
 static FloatGlassPanel *g_panel = nil;
 
