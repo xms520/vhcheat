@@ -423,7 +423,8 @@ static FloatGlassPanel *g_panel = nil;
             UIButton *b = [UIButton buttonWithType:UIButtonTypeSystem];
             b.frame = CGRectMake(15 + i*95, 182, 88, 40);
             [b setTitle:[@[@"1x",@"2x",@"3x"] objectAtIndex:i] forState:UIControlStateNormal];
-            float sv = [(@[@1.0f, @2.0f, @3.0f]) objectAtIndex:i] floatValue];
+            NSArray *vals = @[@1.0f, @2.0f, @3.0f];
+            float sv = [vals[i] floatValue];
             BOOL active = (fabsf(g_speedMult - sv) < 0.01f);
             b.backgroundColor = active ? [UIColor colorWithRed:0.2 green:0.5 blue:0.9 alpha:0.9]
                                        : [UIColor colorWithWhite:0.2 alpha:0.8];
