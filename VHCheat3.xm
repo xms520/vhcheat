@@ -443,7 +443,7 @@ static FloatGlassPanel *g_panel = nil;
     s.backgroundColor = g_oneHitKill ? [UIColor colorWithRed:0.85 green:0.1 blue:0.1 alpha:0.95] : [UIColor colorWithWhite:0.25 alpha:0.8];
     // 同步无敌按钮显示
     for (UIView *v in self.subviews) {
-        if ([v isKindOfClass:[UIButton class]] && [v.titleLabel.text hasPrefix:@"🛡️"]) {
+        if ([v isKindOfClass:[UIButton class]] && [((UIButton *)v).titleLabel.text hasPrefix:@"🛡️"]) {
             UIButton *g = (UIButton*)v;
             [g setTitle:g_godMode ? @"🛡️ 无敌: 开" : @"🛡️ 无敌: 关" forState:UIControlStateNormal];
             g.backgroundColor = g_godMode ? [UIColor colorWithRed:0.1 green:0.6 blue:0.2 alpha:0.95] : [UIColor colorWithWhite:0.25 alpha:0.8];
@@ -457,7 +457,7 @@ static FloatGlassPanel *g_panel = nil;
     [s setTitle:g_godMode ? @"🛡️ 无敌: 开" : @"🛡️ 无敌: 关" forState:UIControlStateNormal];
     s.backgroundColor = g_godMode ? [UIColor colorWithRed:0.1 green:0.6 blue:0.2 alpha:0.95] : [UIColor colorWithWhite:0.25 alpha:0.8];
     for (UIView *v in self.subviews) {
-        if ([v isKindOfClass:[UIButton class]] && [v.titleLabel.text hasPrefix:@"⚔️"]) {
+        if ([v isKindOfClass:[UIButton class]] && [((UIButton *)v).titleLabel.text hasPrefix:@"⚔️"]) {
             UIButton *o = (UIButton*)v;
             [o setTitle:g_oneHitKill ? @"⚔️ 秒杀: 开" : @"⚔️ 秒杀: 关" forState:UIControlStateNormal];
             o.backgroundColor = g_oneHitKill ? [UIColor colorWithRed:0.85 green:0.1 blue:0.1 alpha:0.95] : [UIColor colorWithWhite:0.25 alpha:0.8];
@@ -465,7 +465,8 @@ static FloatGlassPanel *g_panel = nil;
     }
 }
 - (void)vg_onSpeed:(UIButton *)s {
-    g_speedMult = [(@[@1.0f, @2.0f, @3.0f]) objectAtIndex:(s.tag-100)] floatValue];
+    NSArray *vals = @[@1.0f, @2.0f, @3.0f];
+    g_speedMult = [vals[s.tag - 100] floatValue];
     VGLog("[UI] speed=%.1fx", g_speedMult);
     for (UIView *v in self.subviews) {
         if ([v isKindOfClass:[UIButton class]] && v.tag >= 100 && v.tag < 200) {
