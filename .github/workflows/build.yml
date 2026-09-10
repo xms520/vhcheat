@@ -16,7 +16,7 @@ jobs:
           echo "SDK: $SDK"
           echo "CC: $CC"
           
-          cp VHCheat6.xm VHCheat6.m
+          cp VHCheat7.xm VHCheat7.m
           
           $CC -arch arm64 \
             -isysroot "$SDK" \
@@ -27,18 +27,18 @@ jobs:
             -framework CoreGraphics \
             -framework QuartzCore \
             -dynamiclib \
-            -install_name @executable_path/VHCheat6.dylib \
-            -o VHCheat6.dylib \
-            VHCheat6.m
+            -install_name @executable_path/VHCheat7.dylib \
+            -o VHCheat7.dylib \
+            VHCheat7.m
           
           brew install ldid
-          ldid -S VHCheat6.dylib
+          ldid -S VHCheat7.dylib
           
-          file VHCheat6.dylib
-          ls -la VHCheat6.dylib
+          file VHCheat7.dylib
+          ls -la VHCheat7.dylib
           
       - name: Upload
         uses: actions/upload-artifact@v4
         with:
-          name: VHCheat6.dylib
-          path: VHCheat6.dylib
+          name: VHCheat7.dylib
+          path: VHCheat7.dylib
